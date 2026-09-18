@@ -40,5 +40,5 @@ inspect-*.py
 # IDE
 .idea/
 .vscode/
-.claude/settings.local.json
+.claude/
 *.swp
