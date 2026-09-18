@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ine-tracker-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npx playwright install --with-deps chromium
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: MOCK_STORE_URL
+        value: https://demo.inelabteamdev.com
+      - key: CRON_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

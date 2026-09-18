@@ -1,0 +1,31 @@
+{
+  "name": "ine-tracker-backend",
+  "version": "1.0.0",
+  "description": "Backend for INE Store Price Tracker",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "scrape:headed": "cross-env HEADED=true node src/scripts/scrape-manual.js",
+    "scrape:demo": "cross-env HEADED=true SLOW_MO_MS=800 node src/scripts/scrape-manual.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "scraping",
+    "price-tracker"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.10",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.9"
+  }
+}

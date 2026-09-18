@@ -1,0 +1,56 @@
+{
+  "tracked_products": [
+    {
+      "id": "bd77000e-4350-4e6e-91d6-92733fc6ed51",
+      "product_id": 528,
+      "product_name": "Amperage Travel Adapter Two",
+      "product_slug": "amperage-travel-adapter-two",
+      "sku": "AMP-10528",
+      "current_price": 5899,
+      "current_stock": 0,
+      "tracking_status": true,
+      "created_at": "2026-09-18T22:29:46.552Z",
+      "updated_at": "2026-09-18T22:42:12.337Z"
+    }
+  ],
+  "price_history": [
+    {
+      "id": "87a953b3-488f-4cee-bdf7-3bd67bb91f0c",
+      "tracked_product_id": "bd77000e-4350-4e6e-91d6-92733fc6ed51",
+      "price": 5899,
+      "stock": 0,
+      "scraped_at": "2026-09-18T22:42:12.339Z"
+    }
+  ],
+  "scrape_logs": [
+    {
+      "id": "865fbdb3-646c-4e50-a425-0d0466c36ef5",
+      "tracked_product_id": "bd77000e-4350-4e6e-91d6-92733fc6ed51",
+      "status": "FAILED",
+      "attempt_number": 3,
+      "error_message": "page.waitForResponse: Timeout 25000ms exceeded while waiting for event \"response\"",
+      "http_status": null,
+      "details": null,
+      "attempt_timestamp": "2026-09-18T22:31:46.755Z"
+    },
+    {
+      "id": "776ba3cd-5033-4ce6-bb31-2738b2a6ff35",
+      "tracked_product_id": "bd77000e-4350-4e6e-91d6-92733fc6ed51",
+      "status": "FAILED",
+      "attempt_number": 3,
+      "error_message": "page.waitForResponse: Timeout 25000ms exceeded while waiting for event \"response\"",
+      "http_status": null,
+      "details": null,
+      "attempt_timestamp": "2026-09-18T22:31:56.562Z"
+    },
+    {
+      "id": "bc492e24-ad1c-4c74-9f39-429fff99af96",
+      "tracked_product_id": "bd77000e-4350-4e6e-91d6-92733fc6ed51",
+      "status": "SUCCESS",
+      "attempt_number": 1,
+      "duration_ms": 10318,
+      "details": {},
+      "attempt_timestamp": "2026-09-18T22:42:12.340Z"
+    }
+  ]
+}

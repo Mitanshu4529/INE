@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Local database
+backend/data/
+*.sqlite
+*.sqlite3
+
+# Logs and OS
+logs/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Build output
+frontend/dist/
+backend/dist/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Inspection scratch (not part of the app)
+_inspect/
+inspect-*.py
+
+# IDE
+.idea/
+.vscode/
+.claude/settings.local.json
+*.swp
