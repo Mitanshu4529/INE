@@ -37,7 +37,7 @@ const start = async () => {
     // Initial catalog load
     await catalogService.refreshCatalog();
 
-    app.listen(config.port, () => {
+    app.listen(config.port, '0.0.0.0', () => {
       logger.info(`Server: Backend running on port ${config.port}`);
       logger.info(`Server: Environment: ${process.env.NODE_ENV || 'development'}`);
     });
