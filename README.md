@@ -1,252 +1,253 @@
-# INE Store Price Tracker
+# INE Store Product Price Tracker
 
-A production-quality price tracker for the INE mock store with reliable web scraping that survives failures, retries, and unattended runs without storing invalid data.
+A production-ready full-stack web application that tracks product prices and stock availability from the [INE Mock Store](https://demo.inelabteamdev.com/) on an automated schedule with resilient Playwright web scraping, audit logging, and price history analytics.
 
-## Features
+---
 
-- **Reliable Scraping**: Playwright-based scraper that handles anti-scraping measures requiring human-like hover interaction
-- **Dual Database Support**: Supabase for production, local JSON fallback for development
-- **Structured Logging**: Comprehensive audit trail of all scrape attempts (SUCCESS/RETRYING/FAILED)
-- **External Scheduling**: cron-job.org triggers scraping every 2 hours (no backend process required)
-- **Search & Tracking**: Full-text search of product catalog with tracking capability
-- **Historical Data**: Price and stock history with visualization
-- **Manual Scrape**: On-demand scraping for testing and debugging
-- **Frontend Dashboard**: React + Vite interface for viewing tracked products, history, and logs
+## 🚀 Live Demo & Links
 
-## Architecture
+- **Frontend (Vercel):** [https://ine-assignment.vercel.app](https://ine-assignment.vercel.app) *(or your deployed Vercel URL)*
+- **Backend (Render):** [https://ine-tracker-backend.onrender.com](https://ine-tracker-backend.onrender.com) *(or your deployed Render URL)*
+- **Target Mock Store:** [https://demo.inelabteamdev.com](https://demo.inelabteamdev.com)
+- **GitHub Repository:** [https://github.com/Mitanshu4529/INE](https://github.com/Mitanshu4529/INE)
+- **Design & Reliability Note:** [docs/design-note.md](docs/design-note.md)
 
-- **Frontend**: React.js with Vite, deployed to Vercel
-- **Backend**: Node.js + Express.js, deployed to Render  
-- **Database**: Supabase PostgreSQL
-- **Scraping**: Playwright for product pages (price/stock), HTTP for catalog/search
-- **Scheduling**: External cron-job.org calling a protected backend endpoint
+---
 
-## Prerequisites
+## 📋 Features
 
-- Node.js 18+
-- npm or yarn
-- Git
-- Supabase account (for production)
-- Render account (for backend deployment)
-- Vercel account (for frontend deployment)
-- cron-job.org account (for scheduling)
+- 🔍 **Product Search & Discovery:** Search the INE mock store catalog by partial or full product name and select items for tracking.
+- ⚡ **Resilient Web Scraping:** Playwright-driven automation that handles anti-bot mouse hover challenges, dwell-time gating, rotating CSS class names, flaky click handlers, and decoy DOM elements.
+- ⏱️ **Automated Scheduled Scraping (Every 2 Hours):** External cron trigger via `cron-job.org` calling a secure backend endpoint (`POST /api/scrape/run`) to overcome free-tier backend sleep cycles.
+- 📊 **Price & Stock History:** Interactive price trend chart and tabular log of historic price and inventory changes over time.
+- 📝 **Honest Scrape Audit Logs:** Comprehensive per-product logs recording all scrape attempts with exact timestamps, status (`SUCCESS`, `RETRYING`, `FAILED`), duration in ms, and error reasons.
+- 👁️ **Observable Headed Mode:** Built-in scripts to watch and record the scraper in action in a visible browser with simulated real-world conditions (slow network, errors, retries).
+- 🛡️ **Data Integrity Guardrails:** Failures never overwrite or corrupt existing price/stock data.
 
-## Local Development Setup
+---
 
-1. Clone the repository
-```bash
-git clone <your-repo-url>
-cd INE-assignment
+## 🏗️ Architecture & Tech Stack
+
+```mermaid
+graph LR
+    subgraph Client
+        FE[React + Vite Frontend<br/>Vercel]
+    end
+
+    subgraph Scheduler
+        CRON[cron-job.org<br/>Every 2 Hours]
+    end
+
+    subgraph Backend
+        BE[Node.js + Express API<br/>Render]
+        PW[Playwright Browser Engine]
+    end
+
+    subgraph Storage
+        DB[(Supabase PostgreSQL)]
+    end
+
+    subgraph Target
+        STORE[INE Mock Storefront<br/>demo.inelabteamdev.com]
+    end
+
+    FE -->|REST API| BE
+    CRON -->|POST /api/scrape/run<br/>X-Cron-Secret| BE
+    BE -->|Query / Store| DB
+    BE -->|Lightweight HTTP / Search| STORE
+    BE -->|Automated Scrape Session| PW
+    PW -->|Hover & Extract Price/Stock| STORE
 ```
 
-2. Backend Setup
+- **Frontend:** React.js, Vite, TailwindCSS, Chart.js / Lucide icons (Deployed on **Vercel**)
+- **Backend:** Node.js (ES Modules), Express.js (Deployed on **Render**)
+- **Scraping Engine:** Playwright Chromium with human-like motion interpolation and computed style extraction
+- **Database:** Supabase (PostgreSQL) with Row Level Security (RLS) and cascading audit tables
+- **Scheduler:** `cron-job.org` external webhook caller
+
+---
+
+## ⏰ Scraping Schedule & Workflow
+
+Because free-tier host instances sleep when idle, scheduled scraping is driven by an external heartbeat rather than an internal background loop:
+
+1. **Schedule:** Every 2 hours (`0 */2 * * *`)
+2. **Trigger Method:** `POST https://<backend-host>/api/scrape/run`
+3. **Authentication:** Request header `X-Cron-Secret: <CRON_SECRET>`
+4. **Execution Flow:**
+   - Wakes up the Render instance if asleep.
+   - Fetches all active tracked products from Supabase.
+   - Sequentially scrapes each product using Playwright.
+   - Logs every attempt status (`SUCCESS`, `RETRYING`, `FAILED`) into `scrape_logs`.
+   - Appends verified price/stock points into `price_history`.
+   - Updates `tracked_products.last_scrape_at` and latest verified values.
+
+---
+
+## 🛠️ Local Development & Setup
+
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+- Supabase account (or use automatic local JSON store fallback for local dev)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Mitanshu4529/INE.git
+cd INE
+```
+
+### 2. Database Setup (Supabase)
+1. Open your Supabase Project SQL Editor.
+2. Run the SQL script found in [`database/schema.sql`](database/schema.sql) to create `tracked_products`, `price_history`, and `scrape_logs` tables.
+
+### 3. Backend Setup
 ```bash
 cd backend
 npm install
+
+# Copy environment template
 cp .env.example .env
-# Edit .env with your configuration (see below)
+# Fill in your Supabase credentials and CRON_SECRET
+
+# Start backend dev server (runs on http://localhost:3001)
 npm run dev
 ```
 
-3. Frontend Setup
+### 4. Frontend Setup
 ```bash
 cd ../frontend
 npm install
+
+# Copy environment template
 cp .env.example .env
-# Edit .env with your configuration (see below)
+
+# Start frontend dev server (runs on http://localhost:5173)
 npm run dev
 ```
 
-4. Visit http://localhost:5173 to use the application
+Visit **`http://localhost:5173`** in your browser.
 
-## Environment Variables
+---
 
-### Backend (.env)
-```
-NODE_ENV=development
-PORT=3001
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-CRON_SECRET=random_strong_secret
-SCRAPE_NAVIGATION_TIMEOUT=15000
-SCRAPE_HOVER_TIMEOUT=10000
-SCRAPE_RETRY_BASE_DELAY=300
-SCRAPE_MAX_RETRIES=6
-MOCK_STORE_URL=https://demo.inelabteamdev.com
-HEADED=false
-SLOW_MO_MS=0
-SCRAPE_SIMULATE=none
-```
+## 🎥 Observable Headed Scraper Runs (Screen Recording)
 
-### Frontend (.env)
-```
-VITE_API_BASE_URL=http://localhost:3001/api
+The scraper includes dedicated headed mode commands for local visual inspection and recording:
+
+```bash
+cd backend
+
+# Run headed scraper on the default product with visible browser
+npm run scrape:headed
+
+# Run headed scraper with slowed-down movements (demo mode for recording)
+npm run scrape:demo
+
+# Run headed scraper on a specific product ID (e.g., ID 528)
+node src/scripts/scrape-manual.js 528
 ```
 
-## Database Schema
+### Simulating Failures & Slow Responses
+You can test how the scraper handles slow responses or retries by setting `SCRAPE_SIMULATE` in `backend/.env`:
+- `SCRAPE_SIMULATE=none` — Standard live scrape against the mock store.
+- `SCRAPE_SIMULATE=slow` — Adds network delay to observe dwell and wait states.
+- `SCRAPE_SIMULATE=http-error` — Simulates HTTP 500 on attempt 1 to demonstrate exponential backoff retry.
+- `SCRAPE_SIMULATE=timeout` — Simulates page navigation timeout and retry.
 
-The application uses three main tables:
+---
 
-1. `tracked_products` - Stores tracked product information
-2. `price_history` - Historical price and stock data 
-3. `scrape_logs` - Audit trail of all scrape attempts
+## 🔐 Environment Variables
 
-See `database/schema.sql` for the complete schema definition.
+### Backend (`backend/.env`)
 
-## Deployment
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `NODE_ENV` | Environment mode | `development` or `production` |
+| `PORT` | Backend port | `3001` (or `10000` on Render) |
+| `FRONTEND_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
+| `MOCK_STORE_URL` | INE mock store base URL | `https://demo.inelabteamdev.com` |
+| `CRON_SECRET` | Secret token to authorize scheduled scrapes | Strong random string |
+| `SUPABASE_URL` | Supabase Project URL | `https://xyz.supabase.co` |
+| `SUPABASE_ANON_KEY` | Supabase Anon public key | `eyJhbGci...` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role key | `eyJhbGci...` |
+| `SCRAPE_NAVIGATION_TIMEOUT_MS` | Page load timeout | `20000` |
+| `SCRAPE_REVEAL_TIMEOUT_MS` | Price reveal timeout | `25000` |
+| `SCRAPE_MAX_RETRIES` | Max attempts per scrape | `3` |
+| `SCRAPE_RETRY_BASE_DELAY_MS` | Base delay for backoff (ms) | `1000` |
+| `HEADED` | Show visible browser window | `false` (set `true` for demo) |
+| `SLOW_MO_MS` | Delay between Playwright actions | `0` (or `250` for demo) |
 
-### Backend (Render)
-1. Push code to GitHub
-2. Import repository to Render as a Web Service
-3. Set environment variables in Render dashboard
-4. Deploy
+### Frontend (`frontend/.env`)
 
-### Frontend (Vercel)
-1. Push code to GitHub
-2. Import repository to Vercel
-3. Set `VITE_API_BASE_URL` environment variable to your backend URL
-4. Deploy
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:3001/api` (Local) or `https://ine-tracker-backend.onrender.com/api` (Prod) |
 
-### Scheduling (cron-job.org)
-1. Create account at cron-job.org
-2. Create new job:
-   - URL: `https://your-backend.onrender.com/api/scrape/run`
-   - Method: POST
-   - Header: `X-Cron-Secret: <your_cron_secret>`
-   - Schedule: `0 */2 * * *` (every 2 hours)
+---
 
-## API Endpoints
+## 📡 API Reference
 
-### Public Endpoints
-- `GET /api/products/search?q=` - Search products
-- `GET /api/tracked-products` - List tracked products
-- `POST /api/tracked-products` - Track a new product
-- `GET /api/tracked-products/:id` - Get tracked product detail
-- `GET /api/tracked-products/:id/history` - Price/stock history
-- `GET /api/tracked-products/:id/logs` - Scrape attempt logs
-- `POST /api/tracked-products/:id/scrape` - Manual scrape
-- `POST /api/scrape/run` - Cron-triggered scrape (protected)
+### Products & Tracking
+- `GET /api/products/search?q=:query` — Search product catalog by term.
+- `GET /api/tracked-products` — Get list of all tracked products with latest price/stock.
+- `POST /api/tracked-products` — Add a product to tracking list.
+  - Body: `{ "productId": 528, "name": "...", "url": "..." }`
+- `GET /api/tracked-products/:id` — Get single tracked product details.
+- `DELETE /api/tracked-products/:id` — Remove a tracked product.
+- `GET /api/tracked-products/:id/history` — Get price and stock history series.
+- `GET /api/tracked-products/:id/logs` — Get detailed scrape audit log attempts.
+- `POST /api/tracked-products/:id/scrape` — Trigger immediate manual scrape for a product.
 
-## Testing & Verification
+### Scheduled Cron Scrape
+- `POST /api/scrape/run` — Executes batch scrape of all active products.
+  - Required Header: `X-Cron-Secret: <CRON_SECRET>`
 
-### Manual Verification Checklist
-- [ ] Product search returns results for known products
-- [ ] Tracking same product twice returns existing record
-- [ ] Manual scrape succeeds and inserts valid price/stock
-- [ ] Manual scrape on non-existent product fails gracefully
-- [ ] Price/stock history only grows on successful scrapes
-- [ ] Scrape logs capture every attempt with status
-- [ ] Failed attempts do NOT corrupt current values
-- [ ] Layout fetch occurs before each product scrape
-- [ ] Hover behavior visible in headed mode
-- [ ] Retry attempts spaced with backoff
-- [ ] Cron endpoint returns 401 without/with wrong secret
-- [ ] Frontend displays history chart/table
-- [ ] Frontend displays logs with timestamps and reasons
-- [ ] Empty states shown when no data
-- [ ] Error states shown on API failure
-- [ ] Loading states shown during search/scrape
+---
 
-## Development Scripts
-
-### Backend
-- `npm start` - Start production server
-- `npm run dev` - Start development server with nodemon
-- `npm run scrape:headed` - Run headed scraper for debugging
-- `npm run scrape:demo` - Run headed scraper with slowed motions
-
-### Frontend
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-
-## Project Structure
+## 📁 Repository Structure
 
 ```
-backend/
-├── src/
-│   ├── config.js              # Configuration loader
-│   ├── utils/                 # Utility functions (logger, http)
-│   ├── database/              # Database client (Supabase + local fallback)
-│   ├── scraper/               # Playwright scraping logic
-│   │   ├── extractors.js      # Price/stock parsing
-│   │   ├── validators.js      # Data validation
-│   │   ├── errors.js          # Custom error classes
-│   │   └── scraper.js         # Main Playwright orchestrator
-│   ├── services/              # Business logic services
-│   │   ├── catalog.js         # Product catalog service
-│   │   └── scraper.js         # Scrape orchestration service
-│   ├── controllers/           # API controllers
-│   │   ├── products.js        # Product-related endpoints
-│   │   └── cron.js            # Cron-triggered scrape endpoint
-│   ├── routes.js              # API route definitions
-│   └── index.js               # Application entrypoint
-frontend/
-├── src/
-│   ├── api.js                 # API service wrapper
-│   ├── components/            # Reusable components
-│   │   └── Navbar.jsx         # Navigation component
-│   ├── pages/                 # Page components
-│   │   ├── Search.jsx         # Product search page
-│   │   ├── Dashboard.jsx      # Tracked products list
-│   │   └── ProductDetail.jsx  # Product detail with history/logs
-│   ├── App.jsx                # Main application component
-│   └── index.css              # Global styles (with Tailwind)
+.
+├── backend/
+│   ├── Dockerfile                  # Production container definition
+│   ├── package.json
+│   ├── src/
+│   │   ├── config.js               # Environment configuration
+│   │   ├── index.js                # Express app entrypoint
+│   │   ├── routes.js               # API route definitions
+│   │   ├── controllers/            # Request handlers (products, cron)
+│   │   ├── database/               # Supabase client & fallback store
+│   │   ├── scraper/                # Playwright core, extractors, validators
+│   │   │   ├── scraper.js          # Browser orchestrator & hover simulation
+│   │   │   ├── extractors.js       # Computed style & price/stock parser
+│   │   │   ├── validators.js       # Data integrity guardrails
+│   │   │   └── errors.js           # Typed scrape error classes
+│   │   ├── services/               # Scrape & catalog orchestration services
+│   │   ├── utils/                  # HTTP client, logger
+│   │   └── scripts/                # Headed demo & manual scrape CLI scripts
+├── frontend/
+│   ├── index.html
+│   ├── package.json
+│   ├── vercel.json                 # Vercel SPA routing configuration
+│   ├── src/
+│   │   ├── App.jsx                 # Main application routes
+│   │   ├── api.js                  # Backend API client
+│   │   ├── components/             # Reusable UI components
+│   │   └── pages/                  # Search, Dashboard, ProductDetail
+├── database/
+│   └── schema.sql                  # PostgreSQL / Supabase schema & indexes
+├── docs/
+│   └── design-note.md              # Scraper reliability & trade-offs writeup
+├── render.yaml                     # Render.com Blueprint configuration
+└── README.md                       # Documentation & setup guide
 ```
 
-## Known Limitations
+---
 
-- Search relies on caching full catalog (~1000 products)
-- Headed mode requires local Playwright installation
-- Price validation assumes Br(e) transformation is constant
+## 📄 Deliverables Summary
 
-## Interview Preparation Points
-
-### Scraper
-- What it does: Automates product page interaction to extract price/stock via Playwright
-- Why exists: Store hides data behind challenge-response requiring mouse movement
-- What could fail: Network, timeout, validation, fingerprint mismatch
-- How it handles failure: Retries with backoff, logs attempt, never stores invalid data
-
-### Retry Mechanism
-- What it does: Re-attempts scrape with increasing delays after failures
-- Why exists: Store has intermittent slow responses/errors
-- What could fail: Permanent block or invalid selectors
-- How it handles failure: Max retries then logs failure, preserves last good data
-
-### Validation
-- What it does: Checks price/stock for existence, type, range before storing
-- Why exists: Prevent corrupting database with bad/empty data
-- What could fail: None if implemented correctly
-- How it handles failure: Logs failure, skips history insert, keeps current values
-
-### Database Schema
-- What it does: Normalized storage for products, price history, and audit logs
-- Why exists: Support tracking, historical queries, and compliance
-- What could fail: Constraint violations (duplicates, nulls)
-- How it handles healthy: Uses transactions/ordered writes, cascade deletes
-
-### Cron Architecture
-- What it does: External scheduler triggers backend scrape endpoint
-- Why exists: Render free tier sleeps; need reliable 2-hour cadence
-- What could fail: Overlapping runs, auth failure
-- How it handles failure: Product-level lock, cron secret verification, idempotent design
-
-### API Flow
-- What it does: REST endpoints for search, tracking, history, logs, manual/scrape runs
-- Why exists: Decouple frontend from scraping/scheduling logic
-- What could fail: Validation errors, db errors, auth failures
-- How it handles failure: Standardized error responses, logging, status codes
-
-### Headed Mode
-- What it does: Launches visible Chrome browser to demonstrate scraping
-- Why exists: Required for recording and debugging
-- What could fail: Browser launch, timeout
-- How it handles failure: Logs errors, falls back to headless if needed
-
-### Error Handling
-- Frontend: Shows errors, allows retry, never hides failure
-- Backend: Returns structured errors, logs stack traces privately
-- Scraper: Logs every attempt with reason, never silently fails
-- Database: Uses constraints, checks results, rolls back on failure
+1. ✅ **Live Deployment:** Frontend hosted on Vercel, Backend on Render, Database on Supabase.
+2. ✅ **Public GitHub Repository:** [https://github.com/Mitanshu4529/INE](https://github.com/Mitanshu4529/INE)
+3. ✅ **Observable Headed Run:** Scripts provided (`npm run scrape:headed`, `npm run scrape:demo`).
+4. ✅ **README:** Setup instructions, scraping schedule, environment variables, and architecture.
+5. ✅ **Design Note:** Comprehensive writeup in [`docs/design-note.md`](docs/design-note.md).
