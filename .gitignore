@@ -13,6 +13,7 @@ frontend/.env.local
 
 # Local database
 backend/data/
+data/
 *.sqlite
 *.sqlite3
 

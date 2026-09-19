@@ -59,7 +59,7 @@ class ScraperService {
   /**
    * Run a scrape for all tracked products
    */
-  async runAll() {
+  async runAll({ limit = Infinity, onlyMissing = false } = {}) {
     if (this.isRunning) {
       logger.warn('Scraper: A full run is already in progress. Skipping.');
       return { success: false, error: 'Already running' };
@@ -70,7 +70,9 @@ class ScraperService {
 
     try {
       const products = await db.getTrackedProducts();
-      const activeProducts = products.filter(p => p.tracking_status);
+      const activeProducts = products
+        .filter(p => p.tracking_status && (!onlyMissing || p.current_price == null || p.current_stock == null))
+        .slice(0, limit);
       summary.total = activeProducts.length;
 
       logger.info(`Scraper: Starting batch run for ${activeProducts.length} active products`);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, LayoutDashboard, Package } from 'lucide-react';
+import { Activity, Search, LayoutDashboard, Package } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
@@ -8,40 +8,42 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <Package className="w-8 h-8 text-purple-600" />
-            <span className="text-xl font-bold text-gray-900">Price Tracker</span>
-          </Link>
+    <nav className="topbar">
+      <div className="topbar-inner">
+        <Link to="/" className="brand-lockup">
+          <span className="brand-mark"><Package size={19} /></span>
+          <span>
+            <strong>Pricewatch</strong>
+            <small>INE STORE INTELLIGENCE</small>
+          </span>
+        </Link>
 
-          <div className="flex items-center gap-6">
+          <div className="nav-links">
             <Link
               to="/search"
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`nav-link ${
                 isActive('/search')
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'active'
+                  : ''
               }`}
             >
-              <Search className="w-4 h-4" />
+              <Search size={16} />
               Search
             </Link>
 
             <Link
               to="/dashboard"
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`nav-link ${
                 isActive('/dashboard')
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'active'
+                  : ''
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard size={16} />
               Dashboard
             </Link>
+            <span className="nav-status"><Activity size={13} /> Live catalog</span>
           </div>
-        </div>
       </div>
     </nav>
   );

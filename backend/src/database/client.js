@@ -65,13 +65,8 @@ class DatabaseClient {
 
   async getTrackedProduct(id) {
     if (!this.useLocal) {
-      const { data, error } = await this.supabase
-        .from('tracked_products')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data;
+      const products = await this.getTrackedProducts();
+      return products.find(product => String(product.id) === String(id));
     } else {
       const db = await this._readLocal();
       return db.tracked_products.find(p => p.id === id);

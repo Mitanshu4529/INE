@@ -8,9 +8,9 @@ import ProductDetail from './pages/ProductDetail';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-shell">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="app-main">
           <Routes>
             <Route path="/" element={<Navigate replace to="/search" />} />
             <Route path="/search" element={<Search />} />

@@ -9,6 +9,7 @@
     "dev": "nodemon src/index.js",
     "scrape:headed": "cross-env HEADED=true node src/scripts/scrape-manual.js",
     "scrape:demo": "cross-env HEADED=true SLOW_MO_MS=800 node src/scripts/scrape-manual.js",
+    "scrape:catalog": "node src/scripts/scrape-catalog.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

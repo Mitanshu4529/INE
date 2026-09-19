@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProductDetail, getProductHistory, getProductLogs, triggerManualScrape } from '../api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 
 function formatPrice(p) {
   if (p == null) return 'N/A';
@@ -20,7 +21,7 @@ function StatusBadge({ status }) {
     RETRYING: 'bg-yellow-100 text-yellow-800',
   };
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${colors[status] || 'bg-gray-100 text-gray-700'}`}>
+    <span className={`status-badge ${colors[status] || 'bg-gray-100 text-gray-700'}`}>
       {status}
     </span>
   );
@@ -35,13 +36,13 @@ export default function ProductDetail() {
   const [error, setError] = useState(null);
   const [scrapeResult, setScrapeResult] = useState(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     getProductDetail(id).then(res => setProduct(res.data.data)).catch(() => setError('Failed to load product.'));
     getProductHistory(id).then(res => setHistory(res.data.data)).catch(() => {});
     getProductLogs(id).then(res => setLogs(res.data.data)).catch(() => {});
-  };
+  }, [id]);
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [load]);
 
   const handleScrape = async () => {
     setScraping(true);
@@ -62,41 +63,37 @@ export default function ProductDetail() {
     }
   };
 
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
-  if (!product) return <div className="p-8 text-gray-500">Loading...</div>;
+  if (error) return <div className="empty-state"><strong>{error}</strong><span>Return to your dashboard and try again.</span></div>;
+  if (!product) return <div className="empty-state"><strong>Loading product intelligence...</strong></div>;
 
   const chartData = [...history]
     .reverse()
     .map(h => ({ date: new Date(h.scraped_at).toLocaleDateString('en-IN'), price: h.price, stock: h.stock }));
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-8">
-      <div>
-        <Link to="/dashboard" className="text-blue-600 text-sm hover:underline">← Back to Dashboard</Link>
-        <h2 className="text-2xl font-bold mt-2">{product.product_name}</h2>
-        <p className="text-gray-500 text-sm">SKU: {product.sku}</p>
+    <div className="detail-page">
+      <Link to="/dashboard" className="back-link"><ArrowLeft size={15} /> Back to watchlist</Link>
+      <div className="detail-heading">
+        <div><span className="eyebrow">Product intelligence / {product.product_id}</span><h1 className="page-title">{product.product_name}</h1><p className="page-subtitle">SKU {product.sku || 'Not supplied'} · Live signals from the INE store</p></div>
+        <span className="verified-badge"><ShieldCheck size={15} /> Source verified</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="border rounded p-4">
-          <p className="text-sm text-gray-500">Current Price</p>
-          <p className="text-3xl font-bold text-blue-700">{formatPrice(product.current_price)}</p>
+      <div className="detail-stats">
+        <div className="detail-stat price-stat"><span>Current price</span><strong>{formatPrice(product.current_price)}</strong><small>Latest successful scrape</small>
         </div>
-        <div className="border rounded p-4">
-          <p className="text-sm text-gray-500">Stock</p>
-          <p className={`text-3xl font-bold ${product.current_stock === 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="detail-stat"><span>Stock signal</span><strong className={product.current_stock > 0 ? 'stock-good' : ''}>
             {product.current_stock == null ? 'N/A' : product.current_stock === 0 ? 'Out of stock' : `${product.current_stock} units`}
-          </p>
+          </strong><small>Captured from product page</small>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="detail-actions">
         <button
           onClick={handleScrape}
           disabled={scraping}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded font-medium"
+          className="button button-primary"
         >
-          {scraping ? 'Scraping…' : 'Manual Scrape Now'}
+          <RefreshCw size={16} className={scraping ? 'spin' : ''} /> {scraping ? 'Scraping…' : 'Refresh live data'}
         </button>
         {scrapeResult && (
           <p className={`text-sm font-medium ${scrapeResult.ok ? 'text-green-700' : 'text-red-700'}`}>
@@ -105,10 +102,10 @@ export default function ProductDetail() {
         )}
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-3">Price History</h3>
+      <div className="detail-section surface">
+        <div className="section-title"><div><span className="section-label">Historical signal</span><h3>Price history</h3></div><span className="count-pill">{chartData.length} points</span></div>
         {chartData.length > 0 ? (
-          <div className="h-56 border rounded p-2">
+          <div className="chart-box">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -120,37 +117,29 @@ export default function ProductDetail() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-gray-500 text-sm">No price history yet. Run a manual scrape to capture the first data point.</p>
+          <p className="muted-note">No price history yet. Run a refresh to capture the first data point.</p>
         )}
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-3">Scrape Logs</h3>
+      <div className="detail-section surface">
+        <div className="section-title"><div><span className="section-label">Audit trail</span><h3>Scrape activity</h3></div></div>
         {logs.length > 0 ? (
-          <table className="w-full text-sm border rounded overflow-hidden">
-            <thead className="bg-gray-100">
+          <table className="logs-table">
+            <thead>
               <tr>
-                <th className="border p-2 text-left">Status</th>
-                <th className="border p-2 text-left">Attempt</th>
-                <th className="border p-2 text-left">Duration</th>
-                <th className="border p-2 text-left">Timestamp</th>
-                <th className="border p-2 text-left">Note</th>
+                <th>Status</th><th>Attempt</th><th>Duration</th><th>Timestamp</th><th>Note</th>
               </tr>
             </thead>
             <tbody>
               {logs.map(log => (
                 <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="border p-2"><StatusBadge status={log.status} /></td>
-                  <td className="border p-2">{log.attempt_number}</td>
-                  <td className="border p-2">{log.duration_ms != null ? `${log.duration_ms}ms` : '—'}</td>
-                  <td className="border p-2">{formatDateTime(log.attempt_timestamp)}</td>
-                  <td className="border p-2 text-gray-500 text-xs">{log.error_message || ''}</td>
+                  <td><StatusBadge status={log.status} /></td><td>{log.attempt_number}</td><td>{log.duration_ms != null ? `${log.duration_ms}ms` : '—'}</td><td>{formatDateTime(log.attempt_timestamp)}</td><td className="log-note">{log.error_message || 'Completed successfully'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="text-gray-500 text-sm">No scrape logs yet.</p>
+          <p className="muted-note">No scrape logs yet.</p>
         )}
       </div>
     </div>

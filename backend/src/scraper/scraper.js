@@ -63,7 +63,7 @@ async function hoverAndReveal(page, layout, productId) {
 
   // The store wraps the click handler in a 35% flaky wrapper (Xn) which sometimes drops clicks.
   // We click with retry until loading/revealed state is triggered.
-  const maxClickAttempts = 6;
+  const maxClickAttempts = 4;
   for (let clickAttempt = 1; clickAttempt <= maxClickAttempts; clickAttempt++) {
     const isVisible = await button.isVisible({ timeout: 1500 }).catch(() => false);
     if (!isVisible) break;
@@ -82,7 +82,7 @@ async function hoverAndReveal(page, layout, productId) {
     }
 
     scrapeLog(`Clicking reveal button (attempt ${clickAttempt}/${maxClickAttempts})`);
-    await button.click().catch(() => {});
+    await button.click({ timeout: 2000 }).catch(() => {});
 
     // Wait up to 1.5s to see if loading spinner or price appears
     await sleep(1200);
