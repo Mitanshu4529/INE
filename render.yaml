@@ -3,7 +3,7 @@ services:
     name: ine-tracker-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npx playwright install --with-deps chromium
+    buildCommand: npm install && npx playwright install --with-deps chromium chromium-headless-shell
     startCommand: npm start
     healthCheckPath: /health
     envVars:
