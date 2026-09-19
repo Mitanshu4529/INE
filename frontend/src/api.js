@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const apiBaseUrl = configuredBaseUrl.replace(/\/$/, '').endsWith('/api')
+  ? configuredBaseUrl.replace(/\/$/, '')
+  : `${configuredBaseUrl.replace(/\/$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: apiBaseUrl,
 });
 
 export const searchProducts = (q) => api.get(`/products/search?q=${q}`);
