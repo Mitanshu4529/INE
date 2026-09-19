@@ -3,7 +3,7 @@ services:
     name: ine-tracker-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npx playwright install --with-deps chromium chromium-headless-shell
+    buildCommand: npm install && npx playwright install chromium
     startCommand: npm start
     healthCheckPath: /health
     envVars:
@@ -11,6 +11,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"
       - key: FRONTEND_ORIGIN
         sync: false
       - key: MOCK_STORE_URL

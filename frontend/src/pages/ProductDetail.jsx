@@ -14,6 +14,16 @@ function formatDateTime(ts) {
   return new Date(ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function cleanNote(msg) {
+  if (!msg) return 'Completed successfully';
+  // Remove box-drawing characters and clean up multi-line playwright diagnostics
+  const cleaned = msg
+    .replace(/[╔╗╚╝║═│─]/g, '')
+    .split('\n')[0]
+    .trim();
+  return cleaned || msg;
+}
+
 function StatusBadge({ status }) {
   const colors = {
     SUCCESS: 'bg-green-100 text-green-800',
@@ -133,7 +143,7 @@ export default function ProductDetail() {
             <tbody>
               {logs.map(log => (
                 <tr key={log.id} className="hover:bg-gray-50">
-                  <td><StatusBadge status={log.status} /></td><td>{log.attempt_number}</td><td>{log.duration_ms != null ? `${log.duration_ms}ms` : '—'}</td><td>{formatDateTime(log.attempt_timestamp)}</td><td className="log-note">{log.error_message || 'Completed successfully'}</td>
+                  <td><StatusBadge status={log.status} /></td><td>{log.attempt_number}</td><td>{log.duration_ms != null ? `${log.duration_ms}ms` : '—'}</td><td>{formatDateTime(log.attempt_timestamp)}</td><td className="log-note">{cleanNote(log.error_message)}</td>
                 </tr>
               ))}
             </tbody>

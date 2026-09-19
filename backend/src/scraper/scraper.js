@@ -8,11 +8,23 @@ import { scrapeLog } from '../utils/logger.js';
 
 let _browser = null;
 
+// Ensure PLAYWRIGHT_BROWSERS_PATH is 0 if not set in production
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.NODE_ENV === 'production') {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = '0';
+}
+
 async function getBrowser() {
   if (!_browser || !_browser.isConnected()) {
     scrapeLog('Launching browser', config.headed ? '(headed)' : '(headless)');
     _browser = await chromium.launch({
       headless: !config.headed,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+      ],
       slowMo: config.slowMoMs,
     });
   }
@@ -34,25 +46,21 @@ async function fetchLayout() {
 }
 
 async function hoverAndReveal(page, layout, productId) {
-  const classes = layout.classes || {};
-  const priceWrapClass = classes.priceWrap || 'price-block';
-  const priceValueClass = classes.priceValue || 'price-value';
-
-  const selector = `.${priceWrapClass}, .price-block`;
-  await page.waitForSelector(selector, { timeout: 10000 });
+  const selector = '.price-block';
+  await page.waitForSelector(selector, { timeout: 12000 });
 
   const box = await page.locator(selector).first().boundingBox();
   if (!box) throw new ScrapeError(ScrapeCodes.MISSING_SELECTOR, 'Price block has no bounding box');
 
   scrapeLog(`Hovering over price area (${Math.round(box.width)}x${Math.round(box.height)})`);
 
-  // Minimum 12 movements, spaced at least 50-80ms apart (above store's 40ms threshold)
-  const moves = 14 + Math.floor(Math.random() * 4);
+  // Minimum 16 movements, spaced 65ms apart to comfortably exceed store's 40ms tracking threshold
+  const moves = 16;
   for (let i = 0; i < moves; i++) {
-    const x = box.x + 20 + (i * (box.width - 40)) / moves + (Math.random() * 6 - 3);
+    const x = box.x + 20 + (i * (box.width - 40)) / moves + (Math.random() * 4 - 2);
     const y = box.y + box.height * (0.3 + Math.random() * 0.4);
     await page.mouse.move(x, y);
-    await sleep(55 + Math.random() * 25);
+    await sleep(65);
   }
 
   // Ensure minimum dwell time (> 600ms requirement)
@@ -62,60 +70,85 @@ async function hoverAndReveal(page, layout, productId) {
   const button = page.locator(buttonSelector).first();
 
   // The store wraps the click handler in a 35% flaky wrapper (Xn) which sometimes drops clicks.
-  // We click with retry until loading/revealed state is triggered.
-  const maxClickAttempts = 4;
+  // We click with retry until revealed state (.price-success or .price-main) is triggered.
+  const maxClickAttempts = 5;
   for (let clickAttempt = 1; clickAttempt <= maxClickAttempts; clickAttempt++) {
+    const isSuccess = await page.locator('.price-success, .price-main').isVisible().catch(() => false);
+    if (isSuccess) break;
+
     const isVisible = await button.isVisible({ timeout: 1500 }).catch(() => false);
     if (!isVisible) break;
 
     const isDisabled = await button.getAttribute('disabled').catch(() => null);
     if (isDisabled !== null && isDisabled !== undefined) {
-      // Button still disabled, move mouse a bit more and dwell
       scrapeLog(`Button disabled on attempt ${clickAttempt}, moving mouse to satisfy dwell/move requirement`);
-      for (let j = 0; j < 6; j++) {
-        const x = box.x + box.width * (0.2 + Math.random() * 0.6);
-        const y = box.y + box.height * (0.2 + Math.random() * 0.6);
+      for (let j = 0; j < 8; j++) {
+        const x = box.x + 25 + (j * (box.width - 50)) / 8;
+        const y = box.y + box.height * 0.5;
         await page.mouse.move(x, y);
-        await sleep(60);
+        await sleep(65);
       }
-      await sleep(600);
+      await sleep(700);
     }
 
     scrapeLog(`Clicking reveal button (attempt ${clickAttempt}/${maxClickAttempts})`);
     await button.click({ timeout: 2000 }).catch(() => {});
 
-    // Wait up to 1.5s to see if loading spinner or price appears
-    await sleep(1200);
+    await sleep(1500);
 
-    const priceBlockHtml = await page.locator(selector).first().innerHTML().catch(() => '');
-    if (priceBlockHtml.includes('spinner') || priceBlockHtml.includes(priceValueClass) || priceBlockHtml.includes('price-main')) {
+    const hasRevealed = await page.locator('.price-success, .price-main').isVisible().catch(() => false);
+    if (hasRevealed) {
       scrapeLog('Reveal request triggered successfully');
       break;
     }
   }
 
   scrapeLog('Waiting for price element to render...');
-  // Wait for the dynamic price value container to appear and have content
-  await page.waitForSelector(`.${priceValueClass}`, { timeout: config.revealTimeoutMs });
-  await sleep(600);
+  await page.waitForSelector('.price-success, .price-main', { timeout: config.revealTimeoutMs });
+  await sleep(400);
 }
 
 async function extractPriceAndStock(page, layout) {
-  const classes = layout.classes || {};
-  const priceValueClass = classes.priceValue || 'price-value';
-  const stockClass = classes.stock || 'stock';
+  // Extract visible price text from .price-main (ignoring display:none decoys and line-through MRP)
+  let priceText = await page.evaluate(() => {
+    const priceMain = document.querySelector('.price-main');
+    if (!priceMain) return null;
 
-  const priceText = await page
-    .locator(`.${priceValueClass}`)
-    .first()
-    .textContent({ timeout: 3000 })
-    .catch(() => null);
+    const elements = Array.from(priceMain.querySelectorAll('b, span, div'));
+    for (const el of elements) {
+      const style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      if (el.getAttribute('aria-hidden') === 'true') continue;
+      if (style.textDecoration.includes('line-through')) continue;
+      const text = (el.textContent || '').trim();
+      if (text.includes('% off') || text.includes('Deal price') || text.includes('Updating')) continue;
+      if (text.includes('₹') || text.includes('Rs') || /\d/.test(text)) {
+        return text;
+      }
+    }
+    return priceMain.textContent;
+  }).catch(() => null);
 
-  const stockText = await page
-    .locator(`.${stockClass}`)
-    .first()
-    .textContent({ timeout: 3000 })
-    .catch(() => null);
+  if (!priceText) {
+    const classes = layout.classes || {};
+    const priceValueClass = classes.priceValue;
+    if (priceValueClass) {
+      priceText = await page.locator(`.${priceValueClass}`).first().textContent({ timeout: 2000 }).catch(() => null);
+    }
+  }
+
+  // Extract stock text
+  let stockText = await page.evaluate(() => {
+    const stockEl = document.querySelector('.stock-badge, [class*="stock"], .price-facets');
+    if (stockEl) return stockEl.textContent;
+    return null;
+  }).catch(() => null);
+
+  if (!stockText) {
+    const classes = layout.classes || {};
+    const stockClass = classes.stock || 'stock';
+    stockText = await page.locator(`.${stockClass}`).first().textContent({ timeout: 2000 }).catch(() => null);
+  }
 
   const priceResult = parsePriceText(priceText);
   const stockResult = parseStockText(stockText);

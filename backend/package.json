@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
+    "build": "npx playwright install chromium",
     "dev": "nodemon src/index.js",
     "scrape:headed": "cross-env HEADED=true node src/scripts/scrape-manual.js",
     "scrape:demo": "cross-env HEADED=true SLOW_MO_MS=800 node src/scripts/scrape-manual.js",
