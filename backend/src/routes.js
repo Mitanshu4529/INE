@@ -15,7 +15,8 @@ router.get('/tracked-products/:id/history', productController.getProductHistory)
 router.get('/tracked-products/:id/logs', productController.getProductLogs);
 router.post('/tracked-products/:id/scrape', productController.manualScrape);
 
-// Cron trigger
+// Cron trigger (supports both POST and GET for external cron services)
 router.post('/scrape/run', cronController.runCronScrape);
+router.get('/scrape/run', cronController.runCronScrape);
 
 export default router;
